@@ -50,6 +50,13 @@ class MainActivity : Activity() {
             ): Boolean {
                 val url = request?.url.toString()
                 
+                // Redirect HTTP to HTTPS for phish.net domain
+                if (url.startsWith("http://phish.net")) {
+                    val httpsUrl = url.replace("http://", "https://")
+                    view?.loadUrl(httpsUrl)
+                    return true
+                }
+                
                 // Allow these domains to load within the WebView
                 val allowedDomains = listOf(
                     "phish.net",
@@ -67,6 +74,46 @@ class MainActivity : Activity() {
                     } else {
                         // Open truly external links in browser
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        startActivity(intent)
+                        return true
+                    }
+                }
+                
+                // Load other links within the WebView
+                return false
+            }
+            
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                url: String?
+            ): Boolean {
+                // Legacy method for older Android versions
+                val urlString = url ?: return false
+                
+                // Redirect HTTP to HTTPS for phish.net domain
+                if (urlString.startsWith("http://phish.net")) {
+                    val httpsUrl = urlString.replace("http://", "https://")
+                    view?.loadUrl(httpsUrl)
+                    return true
+                }
+                
+                // Allow these domains to load within the WebView
+                val allowedDomains = listOf(
+                    "phish.net",
+                    "mbird.org",
+                    "shopify.com",
+                    "myshopify.com"
+                )
+                
+                if (urlString.startsWith("http://") || urlString.startsWith("https://")) {
+                    val isInApp = allowedDomains.any { domain -> urlString.contains(domain) }
+                    
+                    if (isInApp) {
+                        // Load allowed links (phish.net, store, Shopify checkout) in-app
+                        return false
+                    } else {
+                        // Open truly external links in browser
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlString))
                         startActivity(intent)
                         return true
                     }
