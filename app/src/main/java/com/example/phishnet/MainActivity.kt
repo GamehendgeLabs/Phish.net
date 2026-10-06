@@ -4,28 +4,26 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
-import android.view.View
-import android.view.WindowInsets
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.app.Activity
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        webView = WebView(this)
-        setContentView(webView)
+        // Create SwipeRefreshLayout as the root view
+        swipeRefreshLayout = SwipeRefreshLayout(this)
+        setContentView(swipeRefreshLayout)
         
-        // Handle window insets to prevent status bar overlap
-        webView.setOnApplyWindowInsetsListener { view, insets ->
-            val systemBars = insets.getInsets(WindowInsets.Type.systemBars())
-            view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
+        // Create WebView
+        webView = WebView(this)
+        swipeRefreshLayout.addView(webView)
 
         // Configure WebView settings
         val webSettings = webView.settings
@@ -34,7 +32,7 @@ class MainActivity : Activity() {
         webSettings.loadWithOverviewMode = true
         webSettings.useWideViewPort = true
         webSettings.setSupportZoom(true)
-        
+
         // Spoof user agent to impersonate Chrome
         val chromeUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         webSettings.userAgentString = chromeUserAgent
@@ -44,6 +42,10 @@ class MainActivity : Activity() {
 
         // Configure WebViewClient to handle URL navigation
         webView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                swipeRefreshLayout.isRefreshing = false
+            }
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
                 request: WebResourceRequest?
@@ -123,6 +125,17 @@ class MainActivity : Activity() {
                 return false
             }
         }
+
+        // Configure SwipeRefreshLayout
+        swipeRefreshLayout.setOnRefreshListener {
+            webView.reload()
+        }
+        swipeRefreshLayout.setColorSchemeResources(
+            android.R.color.holo_blue_bright,
+            android.R.color.holo_green_light,
+            android.R.color.holo_orange_light,
+            android.R.color.holo_red_light
+        )
 
         // Load phish.net
         webView.loadUrl("https://phish.net")
